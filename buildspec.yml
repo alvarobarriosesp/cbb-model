@@ -1,7 +1,7 @@
 version: 0.2
 env:
   variables:
-    REPO_NAME: cbb-ml-image
+    REPO_NAME: cbb-daily
     AWS_DEFAULT_REGION: us-east-1
 phases:
   pre_build:
