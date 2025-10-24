@@ -1,0 +1,12 @@
+aws_region: us-east-1
+bucket: modelo-ml-cbb
+input_prefix: data/input/current/
+outputs_prefix: outputs/
+predictions_prefix: predictions/
+roll_windows: [3, 7, 14, 28]
+count_roll_n: 15
+recal_window_days: 60
+offset_window_days: 14
+offset_shrink_tau: 60
+promote_if_mae_improves_by: 0.0
+approve_automatically: true

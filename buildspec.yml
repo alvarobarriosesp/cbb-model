@@ -1,0 +1,32 @@
+version: 0.2
+env:
+  variables:
+    REPO_NAME: cbb-ml-image
+    AWS_DEFAULT_REGION: us-east-1
+phases:
+  pre_build:
+    commands:
+      - set -e
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPO_NAME"
+      - aws ecr describe-repositories --repository-names "$REPO_NAME" --region "$AWS_DEFAULT_REGION" || aws ecr create-repository --repository-name "$REPO_NAME" --region "$AWS_DEFAULT_REGION"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+  build:
+    commands:
+      - set -e
+      - docker build -t "${REPO_NAME}:latest" .
+      - GIT_SHA="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
+      - DATE_TAG="$(date +%Y%m%d-%H%M%S)"
+      - docker tag "${REPO_NAME}:latest" "${ECR_URI}:latest"
+      - docker tag "${REPO_NAME}:latest" "${ECR_URI}:${GIT_SHA}"
+      - docker tag "${REPO_NAME}:latest" "${ECR_URI}:${DATE_TAG}"
+  post_build:
+    commands:
+      - set -e
+      - docker push "${ECR_URI}:latest"
+      - docker push "${ECR_URI}:${GIT_SHA}" || echo "WARN: push ${GIT_SHA} falló"
+      - docker push "${ECR_URI}:${DATE_TAG}"
+      - printf '{"image_uri":"%s","git_sha":"%s","date_tag":"%s"}' "$ECR_URI" "$GIT_SHA" "$DATE_TAG" > image.json
+artifacts:
+  files:
+    - image.json
